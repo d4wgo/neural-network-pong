@@ -2,7 +2,7 @@
     <head> 
         <style>
             body{
-                background-color: darkgrey;
+                background-color:darkslategray;
                 padding: 0;
                 margin: 0;
             }
@@ -14,10 +14,18 @@
                 margin-left:auto;
                 margin-right:auto;
             }
+            #info{
+                margin-top: 20;
+                margin-left: 20;
+                font-family: sans-serif;
+                font-size: 20px;
+                color: white;
+            }
         </style>
     </head>
     <body> 
         <canvas id="playCanvas"></canvas>
+        <div id="info">Machine learning pong<br>Top 25 from each generation are mated <br><a href="https://github.com/d4wgo/neural-network-pong" target="_blank">Source code</a><br>Press space to toggle view<br>More info in browser console</div>
         <script src="pong.js"></script>
     </body>
 </html>

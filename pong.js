@@ -4,16 +4,6 @@ var ctx = canvas.getContext("2d");
 canvas.height = window.innerHeight;
 canvas.width = window.innerHeight * 1.333333;
 var scale = canvas.height / 300;
-var colorSwitcher = -1;
-var colors = ["green", "blue", "red", "yellow", "white", "grey", "magenta", "purple", "cyan", "orange"];
-
-function getNewColor() {
-    colorSwitcher++;
-    if (colorSwitcher >= colors.length) {
-        colorSwitcher = 0;
-    }
-    return colors[colorSwitcher];
-}
 
 class Vector2 {
     constructor(startX, startY) {
@@ -48,6 +38,7 @@ class Network {
         this.depth = middleDepth;
         this.weights = [];
         this.nodes = [];
+        this.parentScore = 0;
         this.nodes.push(new Node());
         this.weights.push(-1.000010101); //index cant be 0 so i pushed a float in
         for (var i = 0; i < this.depth; i++) {
@@ -59,16 +50,27 @@ class Network {
             }
         }
         else {
+            var parent1;
+            var parent2 = 0;
+            parent1 = Math.floor(Math.random() * parentNetwork.length);
+            while(true){
+                parent2 = Math.floor(Math.random() * parentNetwork.length);
+                if(parent2 != parent1){
+                    break;
+                }
+            }
+            //console.log("Mating ponger " + parent1 + " and " + parent2);
+            this.parentScore =  Math.round((((parent1 + parent2) / 2) / parentNetwork.length) * 100);
             for (var i = 0; i < (this.depth * 5) + this.depth; i++) {
                 var rnd = Math.random();
-                if (rnd < 0.9) {
-                    this.weights.push(parentNetwork[0].network.weights[i + 1]);
+                if (rnd < 0.5) {
+                    this.weights.push(parentNetwork[parent1].network.weights[i + 1]);
                 }
                 else {
-                    this.weights.push(parentNetwork[Math.floor(Math.random() * parentNetwork.length)].network.weights[i + 1]);
+                    this.weights.push(parentNetwork[parent2].network.weights[i + 1]);
                 }
                 if (rnd < 0.02) {
-                    console.log("mutate");
+                    //console.log("mutate");
                     if (Math.random < 0.5) {
                         this.weights[i + 1] *= (Math.random() * 4) - 1;
                     }
@@ -197,7 +199,7 @@ class GameInstance {
         }
         this.ball.velocity.x *= 1 + Math.random() * accelSpeed;
         this.ball.velocity.y *= 1 + Math.random() * accelSpeed;
-        this.color = getNewColor();
+        this.color = "white";;
         this.score = 0;
         this.going = true;
     }
@@ -210,15 +212,15 @@ function drawIt(rect, color) {
 
 
 var games = [];
-for (var i = 0; i < 1000; i++) {
+for (var i = 0; i < 100; i++) {
     games.push(new GameInstance(new Network(7, null)));
 }
 
 function neuralDir(bpos, bvel, mpos, network) {
     var values = [];
     values.push(bpos.x / 400);
-    //values.push((bpos.y - 150) / 150);
-    values.push(0);
+    values.push((bpos.y - 150) / 150);
+    //values.push(0);
     values.push(bvel.x);
     values.push(bvel.y);
     values.push((mpos - 150) / 150);
@@ -226,7 +228,12 @@ function neuralDir(bpos, bvel, mpos, network) {
 }
 var currentTop;
 var generation = 1;
+var data = [];
+console.log("Press E to request data");
 var run = setInterval(function () {
+    canvas.height = window.innerHeight * 0.75;
+    canvas.width = window.innerHeight * 0.75 * 1.333333;
+    scale = canvas.height / 300;
     ctx.clearRect(0, 0, canvas.height * 2, canvas.width * 2);
     ctx.font = '20px Arial';
     var doneWithGeneration = true;
@@ -258,6 +265,7 @@ var run = setInterval(function () {
     if (currentTop == null) {
         currentTop = temporaryGen[0];
     }
+    /*
     temporaryGen[0].isTop = true;
     for (var i = 1; i < temporaryGen.length; i++) {
         temporaryGen[i].isTop = false;
@@ -268,9 +276,22 @@ var run = setInterval(function () {
     }
     else {
         currentTop = temporaryGen[0];
+    }*/
+    if(!currentTop.going){
+        currentTop = temporaryGen[0];
     }
+    for (var i = 0; i < temporaryGen.length; i++) {
+        temporaryGen[i].isTop = false;
+        temporaryGen[i].color = "white";
+    }
+    currentTop.isTop = true;
+    currentTop.color = "green";
     ctx.fillStyle = "white";
-    ctx.fillText("Generation " + generation.toString() + ", " + remaining + " pongers remain. Best score is " + currentTop.score, 20, 42);
+    var extraT = "Viewing all pongers.";
+    if(!displayAll){
+        extraT = "Viewing one ponger.";
+    }
+    ctx.fillText("Generation " + generation.toString() + " - " + remaining + " Pongers remain - Best score is " + currentTop.score + " - " + extraT, 20, 42);
     if (doneWithGeneration) {
         generation++;
         var temporaryNetworks = [];
@@ -290,9 +311,10 @@ var run = setInterval(function () {
                 temporaryNetworks.push(games[i]);
             }
         }
-        console.log("Avg score: " + (total / games.length));
+        data.push((total / games.length));
+        console.log("Generation " + (generation - 1) + " had an Avg score of: " + (total / games.length) + " - and a High score of: " + currentTop.score);
         for (var i = 0; i < games.length; i++) {
-            games[i].network = new Network(7, temporaryNetworks.slice(0, Math.floor(temporaryNetworks.length / 2)));
+            games[i].network = new Network(7, temporaryNetworks.slice(0, Math.floor(temporaryNetworks.length / 4)));
             //console.log("Mating " + temporaryNetworks[0].color + " and " + temporaryNetworks[1].color);
             games[i].reset();
         }
@@ -301,10 +323,15 @@ var run = setInterval(function () {
 
 window.addEventListener('keydown', function (event) {
     switch (event.keyCode) {
-        case 37: // Left
+        case 32: // Left
             displayAll = !displayAll;
-            this.console.log(displayAll);
             break;
+        case 69: //e
+            var dString = "";
+            for(var i = 0; i < data.length; i++){
+                dString += data[i] + "\n";
+            }
+            this.console.log(dString);
     }
 }, false);
 
